@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const Post = require("../models/Post.js");
 const { auth } = require("../middleware/auth.js");
 
@@ -7,6 +8,32 @@ const router = express.Router();
 // test
 router.use((req, res, next) => {
   next();
+});
+
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+
+// CREATE POST (text + image)
+router.post("/create", auth, upload.single("image"), async (req, res) => {
+  try {
+    const post = new Post({
+      user: req.user.id,
+      text: req.body.text,
+      image: req.file ? `/uploads/${req.file.filename}` : null,
+      comments: [],
+    });
+
+    await post.save();
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
 });
 
 // CREATE POST
